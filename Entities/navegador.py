@@ -8,6 +8,8 @@ import requests
 from Entities.local_llm import LocalLLM
 import base64
 from botcity.maestro import * #type: ignore
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 maestro = BotMaestroSDK.from_sys_args()
 try:
@@ -30,7 +32,7 @@ class Navegador(NavegadorChrome):
             sleep(2)
 
             html = self.find_element(By.XPATH, 'html')
-            if "Log in to Docusign" in html.text:
+            if ("Log in to Docusign".lower() in html.text.lower()) or ("Log in".lower() in html.text.lower()):
                 self._login()
                 sleep(2)
             
@@ -38,8 +40,11 @@ class Navegador(NavegadorChrome):
         return wrap
     
     def __site_wait(self, sleep_time:float|int=1):
+        now = datetime.now() + relativedelta(minutes=10)
         sleep(sleep_time)
         while True:
+            if datetime.now() > now:
+                break         
             if 'Carregando...' in self.find_element(By.XPATH, 'html').text:
                 continue
             else:
@@ -52,6 +57,7 @@ class Navegador(NavegadorChrome):
         self.email = email
         self.password = password
         super().__init__(save_user=save_user, headless=headless, anonymous=anonymous)
+        self.maximize_window()
 
         #self.get("https://account.docusign.com")
         self.get(self.url_base)
@@ -69,14 +75,20 @@ class Navegador(NavegadorChrome):
         self.get(result)
 
     def _login(self):
-        #import pdb;pdb.set_trace(header=1)
         
-        html = self.find_element(By.XPATH, 'html')
-        for input in html.find_elements(By.TAG_NAME, 'input'):
-            if input.get_attribute('name') == 'email':
-                input.send_keys(self.email)
-                input.send_keys(Keys.ENTER)
-                break
+        try:
+            email_saved = self.find_element(By.ID, 'userInfo', timeout=2)
+            if email_saved.text != self.email:
+                email_saved.click()
+                raise Exception("Email diferente")
+            
+        except:        
+            html = self.find_element(By.XPATH, 'html')
+            for input in html.find_elements(By.TAG_NAME, 'input'):
+                if input.get_attribute('name') == 'email':
+                    input.send_keys(self.email)
+                    input.send_keys(Keys.ENTER)
+                    break
                     
         self.__site_wait(2)
                     
@@ -87,6 +99,7 @@ class Navegador(NavegadorChrome):
                 input.send_keys(Keys.ENTER)
                 break
         
+        
         self.__site_wait(2) 
         html = self.find_element(By.XPATH, 'html')
         if "Invalid email and / or password" in html.text:
@@ -94,7 +107,7 @@ class Navegador(NavegadorChrome):
         
         sleep(5)
         html = self.find_element(By.XPATH, 'html')
-        if not "Boas-vindas".lower() in html.text.lower():
+        if (not "Boas-vindas".lower() in html.text.lower()) and (not "Bem-vindo".lower() in html.text.lower()):
             if self.manual_login_param:
                 #import pdb; pdb.set_trace(header="\n\n -------> Parada para login Manual <------- \n\n")
                 print(P("\n\n -------> Parada para login Manual <------- \n\n", color="yellow"))
@@ -118,8 +131,8 @@ class Navegador(NavegadorChrome):
         ]
     ) -> bool:
         self._go_to("send/documents")
-        self.set_window_size(1920, 1080)      
-        self.find_element(By.XPATH, '/html/body/div[1]/div/div/div/div[1]/div[1]/div[1]/div/div[3]/div/div[2]/button', force=True, timeout=3).click()
+        #self.set_window_size(1920, 1080)      
+        #self.find_element(By.XPATH, '/html/body/div[1]/div/div/div/div[1]/div[1]/div[1]/div/div[3]/div/div[2]/button', force=True, timeout=3).click()
 
         #search_box = self.find_element(By.XPATH, '/html/body/div[1]/div/div/div/div[1]/div[1]/div[3]/div/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/div/div[1]/div[2]/div/input')
         #sleep(3)
@@ -154,6 +167,7 @@ class Navegador(NavegadorChrome):
             
         for label in self.find_elements(By.TAG_NAME, 'label'):
             if label.text == 'Em andamento':
+                label.location_once_scrolled_into_view
                 label.click()
                 self.__site_wait(0.25)
                 break
@@ -202,12 +216,14 @@ class Navegador(NavegadorChrome):
             contratos:List[WebElement] = tbody.find_elements(By.TAG_NAME, "tr")
             
             try:
-                self.__assinar(contratos[_])
-                return True
+                return self.__assinar(contratos[_])
             except Exception as e:
                 self.back()
+                self.refresh()
                 self.__site_wait(5)
                 error = e
+                if not maestro is None:
+                    maestro.error(task_id=int(execution.task_id), exception=e)
                 continue
                     
         if error is not None:
@@ -219,26 +235,35 @@ class Navegador(NavegadorChrome):
         
     def __assinar(self, elemento:WebElement):
         self.__site_wait(2)
+        
+        achou_assinar = False
         for button in elemento.find_elements(By.TAG_NAME, "button"):
             if button.text == 'Assinar':
+                achou_assinar = True
                 button.click()
                 self.__site_wait(2)
                 break
         
+        if not achou_assinar:
+            #raise Exception("Não foi possivel encontrar o botão assinar")
+            print("Não foi possivel encontrar o botão assinar")
+            return False
+        
+        self.__site_wait(10)
         #import pdb;pdb.set_trace(header=3)   
             
-        page_loaded = False
-        for _ in range(60):
-            html = self.find_element(By.XPATH, 'html')
-            if "Revisar e continuar" in html.text:
-                page_loaded = True
-                break
-            self.__site_wait()
+        # page_loaded = False
+        # for _ in range(10):
+        #     html = self.find_element(By.XPATH, 'html')
+        #     if "Revisar e continuar" in html.text:
+        #         page_loaded = True
+        #         break
+        #     self.__site_wait()
         
         #import pdb;pdb.set_trace(header=4)   
           
-        if not page_loaded:
-            raise Exception("Page did not load")
+        # if not page_loaded:
+        #     raise Exception("Page did not load")
         
         #return
 
@@ -249,9 +274,10 @@ class Navegador(NavegadorChrome):
                 break
         
         #import pdb;pdb.set_trace(header=5)   
-        
+        assinou = False
         for button in self.find_elements(By.TAG_NAME, "button"):
                 if button.text == 'Assinar\nExigido - ' or button.text == 'Rubricar\nExigido - ':
+                    assinou = True
                     button.click()
                     self.__site_wait(2)
                     for button in self.find_elements(By.TAG_NAME, "button"):
@@ -260,16 +286,23 @@ class Navegador(NavegadorChrome):
                             self.__site_wait(2)
                             break
         
+        if not assinou:
+            raise Exception("O documento não continha campos para assinar")
                
         #self.get_window_size()  
 
         #import pdb;pdb.set_trace()   
         
+        concluiu = False
         for button in self.find_elements(By.TAG_NAME, "button"):
             if button.text == 'Concluir':
                 button.click()
                 self.__site_wait(5)
+                concluiu = True
                 break
+            
+        if not concluiu:
+            raise Exception("Não foi possivel concluir a assinatura")
         
 
         #import pdb;pdb.set_trace(header=7)
@@ -279,6 +312,8 @@ class Navegador(NavegadorChrome):
                 button.click()
                 self.__site_wait(5)
                 break
+            
+        return True
         
     def manual_login(self):
         self.manual_login_param = True

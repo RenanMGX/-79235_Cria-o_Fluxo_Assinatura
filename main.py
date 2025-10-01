@@ -29,19 +29,31 @@ class ExecuteAPP:
         nav = Navegador(
             email=email,
             password=password,
+            #anonymous=True
         )
         
         if manual_login:
             nav.manual_login()
             return      
         
+        count_error = 0 
+        error = None
         for doc in name_docs:
             try:
                 ExecuteAPP.__execute_in_loop(bot=nav, param=doc)
             except Exception as e:
+                count_error += 1
+                error = e
                 if not maestro is None:
                     maestro.error(task_id=int(execution.task_id), exception=e)
                 print(f"Erro ao assinar {doc}: {e}")
+                
+        if count_error >= len(name_docs):
+            if not error is None:
+                raise error
+            raise Exception("Nenhum documento foi assinado.")
+        
+        print("Processo finalizado.")
                 
 
         
@@ -50,12 +62,13 @@ if __name__ == "__main__":
     crd = CredentialBotCity(
         login=os.getenv("BOTCITY_LOGIN"),#type: ignore
         key=os.getenv("BOTCITY_KEY") #type: ignore
-    ).get_credential(label="CFO")
+    ).get_credential(label="Analista")
     
     bot = ExecuteAPP.start(
-        #email=crd['email'],
-        #password=crd["password"],
-        email=os.getenv("EMAIL"),#type: ignore
-        password=os.getenv("PASSWORD"),#type: ignore
+        email=crd['email'],
+        password=crd["password"],
+        #email=os.getenv("EMAIL"), #type: ignore
+        #password=os.getenv("PASSWORD"), #type: ignore
+        name_docs=["TESTE - Termo de Quitacao"],
     )
     
