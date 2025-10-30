@@ -109,7 +109,7 @@ class Navegador(NavegadorChrome):
         html = self.find_element(By.XPATH, 'html')
         if (not "Boas-vindas".lower() in html.text.lower()) and (not "Bem-vindo".lower() in html.text.lower()):
             if self.manual_login_param:
-                #import pdb; pdb.set_trace(header="\n\n -------> Parada para login Manual <------- \n\n")
+                import pdb; pdb.set_trace(header="\n\n -------> Parada para login Manual <------- \n\n")
                 print(P("\n\n -------> Parada para login Manual <------- \n\n", color="yellow"))
                 while True:
                     try:
@@ -236,13 +236,23 @@ class Navegador(NavegadorChrome):
     def __assinar(self, elemento:WebElement):
         self.__site_wait(2)
         
+        nome_documento = "Nome não encontrado!"
+        
         achou_assinar = False
         for button in elemento.find_elements(By.TAG_NAME, "button"):
+            try:
+                if str(button.get_attribute('data-qa')).split('-')[-1].lower() == 'name':
+                    nome_documento = button.text
+            except:
+                pass
+
             if button.text == 'Assinar':
                 achou_assinar = True
                 button.click()
                 self.__site_wait(2)
                 break
+            
+        #import pdb;pdb.set_trace(header=3)  
         
         if not achou_assinar:
             #raise Exception("Não foi possivel encontrar o botão assinar")
@@ -312,7 +322,16 @@ class Navegador(NavegadorChrome):
                 button.click()
                 self.__site_wait(5)
                 break
-            
+        
+        print(nome_documento, end=' ')
+        if not maestro is None:
+            maestro.new_log_entry(
+                activity_label="Documentos_Assinados",
+                values={
+                    "documento": nome_documento,
+                    "data": datetime.now().strftime("%d/%m/%Y")
+                }
+            )            
         return True
         
     def manual_login(self):

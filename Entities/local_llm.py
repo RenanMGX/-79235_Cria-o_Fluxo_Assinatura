@@ -166,22 +166,28 @@ class LocalLLM:
 if __name__ == "__main__":
     import base64
 
-    # Carregar imagem em base64
-    with open(r"#material\Screenshot_6.png", "rb") as f:
-        img_b64 = base64.b64encode(f.read()).decode("utf-8")    
+    # # Carregar imagem em base64
+    # with open(r"#material\Screenshot_6.png", "rb") as f:
+    #     img_b64 = base64.b64encode(f.read()).decode("utf-8")    
     
-    LocalLLM.seed = 123
-    LocalLLM.temperature = 0.0
-    LocalLLM.top_p = 1.0
-    LocalLLM.num_predict = 512
-    result = LocalLLM.image(
-        model='gemma3:4b',
-        img=img_b64,
+    # LocalLLM.seed = 123
+    # LocalLLM.temperature = 0.0
+    # LocalLLM.top_p = 1.0
+    # LocalLLM.num_predict = 512
+    # result = LocalLLM.image(
+    #     model='gemma3:4b',
+    #     img=img_b64,
+    #     raw_return=False
+    # )
+    
+    # #import pdb; pdb.set_trace()
+    # print(result)
+    
+    bot = LocalLLM.generative(
+        model="llama3.2:3b",
+        prompt="Explique a teoria da relatividade de forma simples.",
         raw_return=False
     )
-    
-    #import pdb; pdb.set_trace()
-    print(result)
         
         
 

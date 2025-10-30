@@ -26,6 +26,7 @@ class ExecuteAPP:
     ):
         
         
+        
         nav = Navegador(
             email=email,
             password=password,
@@ -34,6 +35,7 @@ class ExecuteAPP:
         
         if manual_login:
             nav.manual_login()
+            import pdb; pdb.set_trace(header="\n\n -------> Parada para login Manual <------- \n\n")
             return      
         
         count_error = 0 
@@ -69,6 +71,7 @@ if __name__ == "__main__":
         password=crd["password"],
         #email=os.getenv("EMAIL"), #type: ignore
         #password=os.getenv("PASSWORD"), #type: ignore
-        name_docs=["TESTE - Termo de Quitacao"],
+        name_docs=["TESTE"],
+        manual_login=False
     )
     
