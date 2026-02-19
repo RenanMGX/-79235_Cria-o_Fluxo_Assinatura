@@ -1,5 +1,6 @@
 from patrimar_dependencies.navegador_chrome import NavegadorChrome, By, Keys, WebElement, Select
 from patrimar_dependencies.functions import P
+from patrimar_dependencies.sharepointfolder import SharePointFolders
 from time import sleep
 from typing import Literal, List, Dict
 from functools import wraps
@@ -10,6 +11,7 @@ import base64
 from botcity.maestro import * #type: ignore
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from .secutiry_code import SecurityCode
 
 maestro = BotMaestroSDK.from_sys_args()
 try:
@@ -99,11 +101,18 @@ class Navegador(NavegadorChrome):
                 input.send_keys(Keys.ENTER)
                 break
         
+        self.__site_wait(3)
+
+        self.security_code_verify()
         
-        self.__site_wait(2) 
+        self.__site_wait(3) 
         html = self.find_element(By.XPATH, 'html')
         if "Invalid email and / or password" in html.text:
             raise Exception("Invalid email and / or password")
+        
+        self.__site_wait(3)
+
+        self.security_code_verify()
         
         sleep(5)
         html = self.find_element(By.XPATH, 'html')
@@ -231,8 +240,31 @@ class Navegador(NavegadorChrome):
         
         print(P("Não foi possivel assinar nada", color="red"))   
         return False
+
+
+    def security_code_verify(self):
+        for input in self.find_elements(By.TAG_NAME, 'input'):
+            if input.get_attribute('name') == 'security_code':
+                security_code_class = SecurityCode(
+                    SharePointFolders(r'RPA - Dados\Configs\79235 - Assinaturas_docusing\Emails_Diretor')
+                )
+                for _ in range(30):
+                    try:
+                        print(f"Aguardando código de segurança... {_+1}/30", end="\r")
+                        security_code = security_code_class.get_code()
+                        break
+                    except FileNotFoundError:
+                        sleep(30)
+                        continue
                 
+                print()
+                security_code_class.delete_files()
+
+                input.send_keys(security_code) # <--------- Codigo aqui
+                input.send_keys(Keys.ENTER)
+                return
         
+
     def __assinar(self, elemento:WebElement):
         self.__site_wait(2)
         

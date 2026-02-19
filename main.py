@@ -64,7 +64,7 @@ if __name__ == "__main__":
     crd = CredentialBotCity(
         login=os.getenv("BOTCITY_LOGIN"),#type: ignore
         key=os.getenv("BOTCITY_KEY") #type: ignore
-    ).get_credential(label="Analista")
+    ).get_credential(label="CFO")
     
     bot = ExecuteAPP.start(
         email=crd['email'],
@@ -72,6 +72,6 @@ if __name__ == "__main__":
         #email=os.getenv("EMAIL"), #type: ignore
         #password=os.getenv("PASSWORD"), #type: ignore
         name_docs=["TESTE"],
-        manual_login=False
+        manual_login=True
     )
     
