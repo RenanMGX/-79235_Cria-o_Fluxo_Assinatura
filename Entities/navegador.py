@@ -248,14 +248,20 @@ class Navegador(NavegadorChrome):
                 security_code_class = SecurityCode(
                     SharePointFolders(r'RPA - Dados\Configs\79235 - Assinaturas_docusing\Emails_Diretor')
                 )
+                security_code = ""
                 for _ in range(30):
                     try:
                         print(f"Aguardando código de segurança... {_+1}/30", end="\r")
                         security_code = security_code_class.get_code()
                         break
                     except FileNotFoundError:
+                        if _ >= 29:
+                            raise Exception("Código de segurança não recebido em tempo hábil")
                         sleep(30)
                         continue
+                
+                if not security_code:
+                    raise Exception("Código de segurança não recebido em tempo hábil")
                 
                 print()
                 security_code_class.delete_files()
