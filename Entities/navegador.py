@@ -62,7 +62,10 @@ class Navegador(NavegadorChrome):
 
         #self.get("https://account.docusign.com")
         self.get(self.url_base)
-        self.maximize_window()
+        try:
+            self.maximize_window()
+        except Exception:
+            pass
         
         self.manual_login_param = False
         
