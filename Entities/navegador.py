@@ -59,10 +59,10 @@ class Navegador(NavegadorChrome):
         self.email = email
         self.password = password
         super().__init__(save_user=save_user, headless=headless, anonymous=anonymous)
-        self.maximize_window()
 
         #self.get("https://account.docusign.com")
         self.get(self.url_base)
+        self.maximize_window()
         
         self.manual_login_param = False
         
