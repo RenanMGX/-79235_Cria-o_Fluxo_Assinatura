@@ -61,7 +61,14 @@ class Navegador(NavegadorChrome):
         super().__init__(save_user=save_user, headless=headless, anonymous=anonymous)
 
         #self.get("https://account.docusign.com")
-        self.get(self.url_base)
+        for _attempt in range(3):
+            try:
+                self.get(self.url_base)
+                break
+            except Exception as e:
+                if _attempt == 2:
+                    raise
+                sleep(3)
         try:
             self.maximize_window()
         except Exception:
