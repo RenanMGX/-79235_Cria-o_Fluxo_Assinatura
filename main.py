@@ -12,9 +12,16 @@ except Exception as e:
 
 class ExecuteAPP:
     @staticmethod
-    def __execute_in_loop(*, bot: Navegador, param:str):
-        while bot.assinar_contrato(param):
-            print(f"Assinado com sucesso!")
+    def __execute_in_loop(*, bot: Navegador, param:str) -> int:
+        count = 0
+        while True:
+            result = bot.assinar_contrato(param)
+            if result:
+                count += 1
+                print(f"Assinado com sucesso!")
+            else:
+                break
+        return count
     
     @staticmethod
     def start(
@@ -38,24 +45,19 @@ class ExecuteAPP:
             import pdb; pdb.set_trace(header="\n\n -------> Parada para login Manual <------- \n\n")
             return      
         
-        count_error = 0 
-        error = None
+        total_success = 0
+        total_fail = 0
         for doc in name_docs:
             try:
-                ExecuteAPP.__execute_in_loop(bot=nav, param=doc)
+                total_success += ExecuteAPP.__execute_in_loop(bot=nav, param=doc)
             except Exception as e:
-                count_error += 1
-                error = e
+                total_fail += 1
                 if not maestro is None:
                     maestro.error(task_id=int(execution.task_id), exception=e)
                 print(f"Erro ao assinar {doc}: {e}")
-                
-        if count_error >= len(name_docs):
-            if not error is None:
-                raise error
-            raise Exception("Nenhum documento foi assinado.")
-        
+
         print("Processo finalizado.")
+        return (total_success, total_fail)
                 
 
         

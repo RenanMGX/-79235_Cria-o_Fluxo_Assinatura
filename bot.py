@@ -86,14 +86,12 @@ class Execute:
             raise ValueError("Parâmetro 'crd_param' deve ser uma string representando o label da credencial.")
         
         
-        ExecuteAPP.start(
+        return ExecuteAPP.start(
             email=maestro.get_credential(label=crd_param, key="email"),
             password=maestro.get_credential(label=crd_param, key="password"),
             manual_login=manual_login,
             name_docs=name_docs
         )
-        
-        p.add_processado()
 
 if __name__ == '__main__':
     maestro = BotMaestroSDK.from_sys_args()
@@ -102,22 +100,28 @@ if __name__ == '__main__':
     print(f"Task Parameters are: {execution.parameters}")
 
     task_name = execution.parameters.get('task_name')
-    
-    p = Processos(1)
 
     try:
-        Execute.start()
+        result = Execute.start()
+        processados, falhas = result if result is not None else (0, 0)
+        
+        p = Processos(processados + falhas)
+        p.add_processado(processados)
+        
+        status = AutomationTaskFinishStatus.FAILED if processados == 0 and falhas > 0 else AutomationTaskFinishStatus.SUCCESS
+        message = f"Tarefa {task_name} finalizada com sucesso" if status == AutomationTaskFinishStatus.SUCCESS else f"Tarefa {task_name} finalizada com Error"
         
         maestro.finish_task(
                     task_id=execution.task_id,
-                    status=AutomationTaskFinishStatus.SUCCESS,
-                    message=f"Tarefa {task_name} finalizada com sucesso",
+                    status=status,
+                    message=message,
                     total_items=p.total, # Número total de itens processados
                     processed_items=p.processados, # Número de itens processados com sucesso
                     failed_items=p.falhas # Número de itens processados com falha
         )
         
     except Exception as error:
+        p = Processos(1)
         ia_response = "Sem Resposta da IA"
         try:
             token = maestro.get_credential(label="GeminiIA-Token-Default", key="token")
